@@ -1,0 +1,12 @@
+uploads/
+output/
+*.pyc
+__pycache__/
+.env
+.vscode/
+*.log
+dummy_students.xlsx
+hallticket_*.pdf
+*.zip
+node_modules/
+.DS_Store
