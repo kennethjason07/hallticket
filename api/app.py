@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+import json
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -6,8 +8,8 @@ import os
 import zipfile
 from werkzeug.utils import secure_filename
 from PIL import Image
-
-app = Flask(__name__)
+import cgi
+import io
 
 # Configuration for Vercel - use /tmp for temporary files
 UPLOAD_FOLDER = '/tmp/uploads'
