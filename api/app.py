@@ -466,6 +466,18 @@ def preview_excel():
     except Exception as e:
         return jsonify({'error': f'Error previewing Excel file: {str(e)}'}), 500
 
+# Vercel serverless function handler
+def handler(request, response):
+    with app.test_request_context(request.path, method=request.method, data=request.get_data(), headers=request.headers):
+        try:
+            rv = app.preprocess_request()
+            if rv is None:
+                rv = app.dispatch_request()
+        except Exception as e:
+            rv = app.handle_user_exception(e)
+        response = app.make_response(rv)
+        return app.process_response(response)
+
 # For local development
 if __name__ == '__main__':
     app.run(debug=True)
