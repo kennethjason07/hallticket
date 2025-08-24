@@ -466,16 +466,6 @@ def preview_excel():
     except Exception as e:
         return jsonify({'error': f'Error previewing Excel file: {str(e)}'}), 500
 
-# This is the main entry point for Vercel
-from werkzeug.wrappers import Response
-
-def handler(event, context):
-    """Vercel serverless function handler"""
-    return app
-
 # For local development
 if __name__ == '__main__':
     app.run(debug=True)
-
-# Export the Flask app for WSGI
-app = app
