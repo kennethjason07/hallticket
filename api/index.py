@@ -1,18 +1,13 @@
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import os
 import zipfile
-import tempfile
 from werkzeug.utils import secure_filename
-import io
-import json
 from PIL import Image
-import shutil
 
-app = Flask(__name__, template_folder='../templates')
-app.secret_key = 'hall_ticket_generator_secret_key'
+app = Flask(__name__)
 
 # Configuration for Vercel - use /tmp for temporary files
 UPLOAD_FOLDER = '/tmp/uploads'
@@ -137,9 +132,138 @@ def generate_hallticket(row, department_name, logo_path, output_dir):
     c.save()
     return filename
 
+# HTML Template embedded
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hall Ticket Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        input:focus, select:focus, textarea:focus { border-color: #4CAF50; outline: none; }
+        button { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background-color: #45a049; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .download-btn { background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px; }
+        .download-btn:hover { background-color: #0056b3; }
+        .radio-group { display: flex; gap: 15px; margin-top: 10px; }
+        .radio-item { display: flex; align-items: center; }
+        .radio-item input { width: auto; margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Hall Ticket Generator</h1>
+        <form id="hallTicketForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="excel_file">Excel File (Required):</label>
+                <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+                <small>Required columns: Seat No, Exam No, Name, Date, Exam Center</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="department_name">Department Name:</label>
+                <input type="text" id="department_name" name="department_name" value="INFORMATION SCIENCE ENGINEERING">
+            </div>
+            
+            <div class="form-group">
+                <label for="logo_file">Logo Image (Optional):</label>
+                <input type="file" id="logo_file" name="logo_file" accept=".jpg,.jpeg,.png,.gif,.bmp">
+            </div>
+            
+            <div class="form-group">
+                <label>Subject Configuration:</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="subject_excel" name="subject_option" value="excel" checked>
+                        <label for="subject_excel">Use subjects from Excel file</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="subject_custom" name="subject_option" value="custom">
+                        <label for="subject_custom">Enter custom subjects</label>
+                    </div>
+                </div>
+                <textarea id="custom_subjects" name="custom_subjects" placeholder="21CS81 - Machine Learning\n21CS82 - Software Engineering" style="margin-top: 10px; display: none; height: 100px;"></textarea>
+            </div>
+            
+            <button type="submit">🚀 Generate Hall Tickets</button>
+        </form>
+        
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.querySelectorAll('input[name="subject_option"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const customTextarea = document.getElementById('custom_subjects');
+                if (this.value === 'custom') {
+                    customTextarea.style.display = 'block';
+                } else {
+                    customTextarea.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('hallTicketForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('result');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Generating...';
+            resultDiv.style.display = 'none';
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.style.display = 'block';
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <p>${data.message}</p>
+                        <p>Total Students: ${data.total_students} | Generated: ${data.generated_count}</p>
+                        <a href="${data.download_url}" class="download-btn">📥 Download Hall Tickets (ZIP)</a>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<h3>❌ Error</h3><p>${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<h3>❌ Error</h3><p>An unexpected error occurred. Please try again.</p>';
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Generate Hall Tickets';
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return HTML_TEMPLATE
 
 @app.route('/upload_images', methods=['POST'])
 def upload_candidate_images():
@@ -343,9 +467,15 @@ def preview_excel():
         return jsonify({'error': f'Error previewing Excel file: {str(e)}'}), 500
 
 # This is the main entry point for Vercel
-def handler(request):
-    return app(request.environ, start_response)
+from werkzeug.wrappers import Response
+
+def handler(event, context):
+    """Vercel serverless function handler"""
+    return app
 
 # For local development
 if __name__ == '__main__':
     app.run(debug=True)
+
+# Export the Flask app for WSGI
+app = app
