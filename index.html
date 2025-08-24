@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hall Ticket Generator - Deployment Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        .status { padding: 20px; margin: 20px 0; border-radius: 10px; }
+        .success { background-color: #d4edda; border: 2px solid #c3e6cb; color: #155724; }
+        .info { background-color: #d1ecf1; border: 2px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Hall Ticket Generator</h1>
+        
+        <div class="status success">
+            <h3>✅ Static Deployment Working!</h3>
+            <p>This page confirms that Vercel can serve static content from your repository.</p>
+        </div>
+        
+        <div class="status info">
+            <h3>🔧 Troubleshooting Python Serverless Functions</h3>
+            <p>We're working on getting the Python serverless functions to work properly on Vercel.</p>
+            <p><strong>Test URLs:</strong></p>
+            <ul>
+                <li><a href="/api/hello" target="_blank">/api/hello</a> - Simple test function</li>
+                <li><a href="/api/index" target="_blank">/api/index</a> - Main application</li>
+            </ul>
+        </div>
+        
+        <div class="status info">
+            <h3>📝 Current Status</h3>
+            <ul>
+                <li>✅ GitHub repository connected</li>
+                <li>✅ Static file serving working</li>
+                <li>⏳ Python serverless functions in progress</li>
+            </ul>
+        </div>
+        
+        <script>
+            // Test API endpoints
+            fetch('/api/hello')
+                .then(response => {
+                    if (response.ok) {
+                        document.querySelector('.status.info ul').innerHTML += '<li>✅ /api/hello - Working</li>';
+                    } else {
+                        document.querySelector('.status.info ul').innerHTML += '<li>❌ /api/hello - 404 Error</li>';
+                    }
+                })
+                .catch(error => {
+                    document.querySelector('.status.info ul').innerHTML += '<li>❌ /api/hello - Connection Error</li>';
+                });
+        </script>
+    </div>
+</body>
+</html>
